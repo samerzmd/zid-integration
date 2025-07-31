@@ -283,38 +283,32 @@ async def get_store_info(merchant_id: str):
         logger.error(f"Store info request failed for merchant {merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Store info request failed: {str(e)}")
 
-@router.get("/debug-headers/{merchant_id}")
-async def debug_headers(merchant_id: str):
+@router.get("/get-curl-command/{merchant_id}")
+async def get_curl_command(merchant_id: str):
     """
-    Debug endpoint to show what headers would be sent to Zid API
-    (tokens are masked for security)
+    TEMPORARY DEBUG: Get actual curl command with real tokens for testing
+    WARNING: This exposes tokens - remove after testing!
     """
     try:
         client = ZidAPIClient(merchant_id)
         headers = await client._get_headers()
         
         if headers:
-            # Mask sensitive values for security
-            debug_headers = {}
-            for key, value in headers.items():
-                if key in ["Access-Token", "Authorization"]:
-                    debug_headers[key] = f"{value[:10]}...{value[-4:]}" if len(value) > 14 else "***"
-                else:
-                    debug_headers[key] = value
+            curl_command = f'''curl -X GET "https://api.zid.sa/v1/products/?page=1&page_size=5" \\
+  -H "Access-Token: {headers['Access-Token']}" \\
+  -H "Authorization: {headers['Authorization']}" \\
+  -H "Store-Id: {headers['Store-Id']}" \\
+  -H "Role: {headers['Role']}" \\
+  -H "Accept-Language: {headers['Accept-Language']}" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -H "User-Agent: {headers['User-Agent']}"'''
             
             return {
                 "success": True,
                 "merchant_id": merchant_id,
-                "headers": debug_headers,
-                "curl_template": f"""curl -X GET "https://api.zid.sa/v1/products/" \\
-  -H "Access-Token: [YOUR_ACCESS_TOKEN]" \\
-  -H "Authorization: Bearer [YOUR_AUTH_TOKEN]" \\
-  -H "Store-Id: {headers.get('Store-Id', 'N/A')}" \\
-  -H "Role: {headers.get('Role', 'N/A')}" \\
-  -H "Accept-Language: {headers.get('Accept-Language', 'N/A')}" \\
-  -H "Content-Type: application/json" \\
-  -H "Accept: application/json" \\
-  -H "User-Agent: {headers.get('User-Agent', 'N/A')}" """
+                "curl_command": curl_command,
+                "warning": "This contains real tokens - use immediately and remove this endpoint!"
             }
         else:
             return {
@@ -324,8 +318,8 @@ async def debug_headers(merchant_id: str):
             }
             
     except Exception as e:
-        logger.error(f"Debug headers failed for merchant {merchant_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Debug headers failed: {str(e)}")
+        logger.error(f"Get curl command failed for merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Get curl command failed: {str(e)}")
 
 @router.get("/products/{merchant_id}")
 async def get_products(
