@@ -8,7 +8,8 @@ class MerchantToken(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     merchant_id = Column(String, unique=True, index=True, nullable=False)
-    access_token = Column(Text, nullable=False)
+    access_token = Column(Text, nullable=False)  # X-MANAGER-TOKEN
+    authorization_token = Column(Text, nullable=False)  # Bearer token
     refresh_token = Column(Text, nullable=False)
     expires_in = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -4,15 +4,17 @@ from typing import Optional, Any, Dict
 
 
 class TokenResponse(BaseModel):
-    access_token: str
+    access_token: str  # X-MANAGER-TOKEN
+    Authorization: str  # Bearer token for Authorization header
     refresh_token: str
     expires_in: int
-    token_type: str
+    token_type: Optional[str] = None
 
 
 class MerchantTokenCreate(BaseModel):
     merchant_id: str
-    access_token: str
+    access_token: str  # X-MANAGER-TOKEN
+    authorization_token: str  # Bearer token
     refresh_token: str
     expires_in: int
 

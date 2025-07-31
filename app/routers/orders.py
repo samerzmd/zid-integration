@@ -18,8 +18,8 @@ async def get_authenticated_client(
     """Get authenticated Zid API client for a merchant"""
     auth_service = AuthService(db)
     try:
-        access_token = await auth_service.get_valid_token(merchant_id)
-        return ZidAPIClient(access_token=access_token)
+        access_token, authorization_token = await auth_service.get_valid_token(merchant_id)
+        return ZidAPIClient(access_token=access_token, authorization_token=authorization_token)
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 

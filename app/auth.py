@@ -25,6 +25,7 @@ class AuthService:
         if existing_token:
             # Update existing token
             existing_token.access_token = token_data.access_token
+            existing_token.authorization_token = token_data.authorization_token
             existing_token.refresh_token = token_data.refresh_token
             existing_token.expires_in = token_data.expires_in
             existing_token.updated_at = datetime.utcnow()
@@ -70,6 +71,7 @@ class AuthService:
                 token_create = MerchantTokenCreate(
                     merchant_id=merchant_id,
                     access_token=new_token_response.access_token,
+                    authorization_token=new_token_response.Authorization,
                     refresh_token=new_token_response.refresh_token,
                     expires_in=new_token_response.expires_in
                 )
@@ -83,15 +85,15 @@ class AuthService:
         
         return token
     
-    async def get_valid_token(self, merchant_id: str) -> str:
-        """Get a valid access token, refreshing if necessary"""
+    async def get_valid_token(self, merchant_id: str) -> tuple[str, str]:
+        """Get valid tokens (access_token, authorization_token), refreshing if necessary"""
         token = await self.refresh_token_if_needed(merchant_id)
-        return token.access_token
+        return token.access_token, token.authorization_token
 
 
 def get_authorization_url() -> str:
     """Generate Zid OAuth2 authorization URL"""
-    base_url = settings.zid_api_base_url
+    oauth_base_url = "https://oauth.zid.sa"
     params = {
         "response_type": "code",
         "client_id": settings.zid_client_id,
@@ -100,4 +102,4 @@ def get_authorization_url() -> str:
     }
     
     query_string = "&".join([f"{k}={v}" for k, v in params.items()])
-    return f"{base_url}/oauth/authorize?{query_string}"
+    return f"{oauth_base_url}/oauth/authorize?{query_string}"

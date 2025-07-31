@@ -34,10 +34,13 @@ async def oauth_callback(
         # Exchange code for token
         token_response = await client.exchange_code_for_token(code, state)
         
-        # Get merchant information using the access token
-        authenticated_client = ZidAPIClient(access_token=token_response.access_token)
+        # Get merchant information using both tokens
+        authenticated_client = ZidAPIClient(
+            access_token=token_response.access_token,
+            authorization_token=token_response.Authorization
+        )
         try:
-            logger.info(f"Attempting to fetch merchant info with token: {token_response.access_token[:50]}...")
+            logger.info(f"Attempting to fetch merchant info with tokens: access_token={token_response.access_token[:50]}..., auth_token={token_response.Authorization[:50]}...")
             headers = authenticated_client._get_manager_headers()
             logger.info(f"Using headers: Authorization={headers.get('Authorization', 'None')[:50]}..., X-MANAGER-TOKEN={headers.get('X-MANAGER-TOKEN', 'None')[:50]}...")
             merchant_info = await authenticated_client.get_merchant_info()
@@ -55,6 +58,7 @@ async def oauth_callback(
         token_create = MerchantTokenCreate(
             merchant_id=merchant_id,
             access_token=token_response.access_token,
+            authorization_token=token_response.Authorization,
             refresh_token=token_response.refresh_token,
             expires_in=token_response.expires_in
         )

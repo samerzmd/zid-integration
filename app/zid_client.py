@@ -5,9 +5,11 @@ from .schemas import TokenResponse
 
 
 class ZidAPIClient:
-    def __init__(self, access_token: Optional[str] = None):
+    def __init__(self, access_token: Optional[str] = None, authorization_token: Optional[str] = None):
         self.base_url = settings.zid_api_base_url
-        self.access_token = access_token
+        self.oauth_base_url = "https://oauth.zid.sa"
+        self.access_token = access_token  # X-MANAGER-TOKEN
+        self.authorization_token = authorization_token  # Bearer token
         self.client = httpx.AsyncClient()
     
     def _get_headers(self) -> Dict[str, str]:
@@ -15,32 +17,15 @@ class ZidAPIClient:
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
+        if self.authorization_token:
+            headers["Authorization"] = f"Bearer {self.authorization_token}"
         if self.access_token:
-            headers["Authorization"] = f"Bearer {self.access_token}"
-        return headers
-    
-    def _get_headers_raw_token(self) -> Dict[str, str]:
-        """Get headers with raw token (no Bearer prefix) for testing"""
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        if self.access_token:
-            headers["Authorization"] = self.access_token
+            headers["X-MANAGER-TOKEN"] = self.access_token
         return headers
     
     def _get_manager_headers(self) -> Dict[str, str]:
         """Get headers for manager-specific endpoints per Zid documentation"""
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-        if self.access_token:
-            # According to Zid docs: Authorization is Bearer token, X-MANAGER-TOKEN is access token
-            # But we only have one token from OAuth - try using it for both
-            headers["Authorization"] = f"Bearer {self.access_token}"
-            headers["X-MANAGER-TOKEN"] = self.access_token
-        return headers
+        return self._get_headers()  # Use the same logic as _get_headers now
     
     async def exchange_code_for_token(self, code: str, state: Optional[str] = None) -> TokenResponse:
         """Exchange authorization code for access token"""
@@ -53,9 +38,9 @@ class ZidAPIClient:
         }
         
         response = await self.client.post(
-            f"{self.base_url}/oauth/token",
-            json=data,
-            headers={"Content-Type": "application/json"}
+            f"{self.oauth_base_url}/oauth/token",
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
         response.raise_for_status()
         return TokenResponse(**response.json())
@@ -70,9 +55,9 @@ class ZidAPIClient:
         }
         
         response = await self.client.post(
-            f"{self.base_url}/oauth/token",
-            json=data,
-            headers={"Content-Type": "application/json"}
+            f"{self.oauth_base_url}/oauth/token",
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
         response.raise_for_status()
         return TokenResponse(**response.json())
