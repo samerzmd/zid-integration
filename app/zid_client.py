@@ -19,6 +19,18 @@ class ZidAPIClient:
             headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
     
+    def _get_manager_headers(self) -> Dict[str, str]:
+        """Get headers for manager-specific endpoints that require both Authorization and X-Manager-Token"""
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        if self.access_token:
+            # For manager endpoints, both Authorization and X-Manager-Token are required
+            headers["Authorization"] = f"Bearer {self.access_token}"
+            headers["X-Manager-Token"] = self.access_token
+        return headers
+    
     async def exchange_code_for_token(self, code: str, state: Optional[str] = None) -> TokenResponse:
         """Exchange authorization code for access token"""
         data = {
@@ -80,10 +92,10 @@ class ZidAPIClient:
     
     async def get_merchant_info(self) -> Dict[str, Any]:
         """Get current merchant information"""
-        # Use the correct endpoint from Zid documentation
+        # Use the correct endpoint from Zid documentation with proper headers
         response = await self.client.get(
             f"{self.base_url}/v1/managers/account/profile",
-            headers=self._get_headers()
+            headers=self._get_manager_headers()
         )
         response.raise_for_status()
         return response.json()
