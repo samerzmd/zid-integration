@@ -9,15 +9,23 @@ logger = logging.getLogger(__name__)
 
 # Database engine
 # Convert postgresql:// to postgresql+asyncpg:// for async support
+# and handle SSL parameters properly for asyncpg
 database_url = settings.database_url
 if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# Handle SSL mode for asyncpg - remove sslmode parameter and add ssl='require' as connect_args
+connect_args = {}
+if "sslmode=require" in database_url:
+    database_url = database_url.replace("?sslmode=require", "").replace("&sslmode=require", "")
+    connect_args["ssl"] = "require"
 
 engine = create_async_engine(
     database_url,
     echo=settings.env == "development",
     pool_pre_ping=True,
     pool_recycle=300,
+    connect_args=connect_args,
 )
 
 # Session factory
