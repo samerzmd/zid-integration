@@ -19,6 +19,16 @@ class ZidAPIClient:
             headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
     
+    def _get_headers_raw_token(self) -> Dict[str, str]:
+        """Get headers with raw token (no Bearer prefix) for testing"""
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        if self.access_token:
+            headers["Authorization"] = self.access_token
+        return headers
+    
     def _get_manager_headers(self) -> Dict[str, str]:
         """Get headers for manager-specific endpoints that require X-Manager-Token"""
         headers = {
@@ -92,10 +102,10 @@ class ZidAPIClient:
     
     async def get_merchant_info(self) -> Dict[str, Any]:
         """Get current merchant information"""
-        # Try the standard Authorization Bearer header first
+        # Try raw token without Bearer prefix (Zid might use encrypted tokens)
         response = await self.client.get(
             f"{self.base_url}/v1/managers/account/profile",
-            headers=self._get_headers()
+            headers=self._get_headers_raw_token()
         )
         response.raise_for_status()
         return response.json()
