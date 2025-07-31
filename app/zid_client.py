@@ -92,10 +92,10 @@ class ZidAPIClient:
     
     async def get_merchant_info(self) -> Dict[str, Any]:
         """Get current merchant information"""
-        # Use the correct endpoint from Zid documentation with proper headers
+        # Try the standard Authorization Bearer header first
         response = await self.client.get(
             f"{self.base_url}/v1/managers/account/profile",
-            headers=self._get_manager_headers()
+            headers=self._get_headers()
         )
         response.raise_for_status()
         return response.json()
