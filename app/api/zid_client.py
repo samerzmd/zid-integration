@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from ..models.database import ZidCredential
-from ..database import get_db_session
+from ..database import get_db
 from ..auth.token_manager import TokenManager
 from ..auth.oauth_service import OAuthService
 from ..config import settings
@@ -50,7 +50,7 @@ class ZidAPIClient:
     async def _get_credentials(self) -> Optional[ZidCredential]:
         """Retrieve active credentials for the merchant"""
         try:
-            async with get_db_session() as db:
+            async with get_db() as db:
                 stmt = select(ZidCredential).where(
                     ZidCredential.merchant_id == self.merchant_id,
                     ZidCredential.is_active == True

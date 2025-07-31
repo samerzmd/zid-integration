@@ -4,6 +4,9 @@ from pydantic import BaseModel
 import logging
 
 from ..api.zid_client import ZidAPIClient
+from ..models.database import ZidCredential
+from ..database import get_db
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,40 @@ class TokenValidationResponse(BaseModel):
     needs_refresh: Optional[bool] = None
     last_updated: Optional[str] = None
     error: Optional[str] = None
+
+@router.get("/merchants")
+async def list_merchants():
+    """
+    List all stored merchant credentials
+    
+    Returns:
+        List of merchants with their credential status
+    """
+    try:
+        async with get_db() as db:
+            stmt = select(ZidCredential)
+            result = await db.execute(stmt)
+            credentials = result.scalars().all()
+            
+            merchants = []
+            for cred in credentials:
+                merchants.append({
+                    "merchant_id": cred.merchant_id,
+                    "credential_id": cred.id,
+                    "is_active": cred.is_active,
+                    "expires_at": cred.expires_at.isoformat() if cred.expires_at else None,
+                    "created_at": cred.created_at.isoformat() if cred.created_at else None,
+                    "updated_at": cred.updated_at.isoformat() if cred.updated_at else None
+                })
+            
+            return {
+                "total_merchants": len(merchants),
+                "merchants": merchants
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to list merchants: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list merchants: {str(e)}")
 
 @router.get("/test/{merchant_id}")
 async def test_api_client(
