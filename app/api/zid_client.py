@@ -126,10 +126,18 @@ class ZidAPIClient:
         if not tokens:
             return None
         
-        # Build Zid's dual-header authentication
+        # Build Zid's required headers according to API documentation
         headers = {
-            "X-Manager-Token": tokens["access_token"],
-            "Authorization": f"Bearer {tokens['authorization_token']}",
+            # Authentication headers
+            "Access-Token": tokens["access_token"],  # Required by Zid API
+            "Authorization": f"Bearer {tokens['authorization_token']}",  # Required by Zid API
+            
+            # Required Zid API headers
+            "Store-Id": self.merchant_id,  # Use merchant_id as Store-Id
+            "Role": "Manager",  # Required role for API access
+            "Accept-Language": "all-languages",  # Get both Arabic and English content
+            
+            # Standard headers
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": f"ZidIntegration/1.0.0 (Merchant: {self.merchant_id})"
