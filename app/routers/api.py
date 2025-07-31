@@ -335,14 +335,13 @@ async def get_products(
         # Build query parameters for Zid API
         params = {
             "page": page,
-            "per_page": limit,
-            "sort_by": sort_by,
-            "sort_order": sort_order
+            "page_size": limit,  # Zid uses page_size instead of per_page
         }
         
-        # Add filtering parameters
-        if category_id is not None:
-            params["category_id"] = category_id
+        # Add filtering parameters (simplified for Zid API compatibility)
+        if search:
+            # Zid supports attribute_values for filtering
+            params["attribute_values"] = search
         if min_price is not None:
             params["min_price"] = min_price
         if max_price is not None:
@@ -366,13 +365,13 @@ async def get_products(
         
         logger.info(f"Fetching products for merchant {merchant_id} with filters: {params}")
         
-        # Make request to Zid API
-        products_data = await client.get("/v1/managers/store/products", params=params)
+        # Make request to Zid API - Updated to correct endpoint
+        products_data = await client.get("/v1/products/", params=params)
         
         if products_data:
-            # Extract pagination info from response
-            total_count = products_data.get("total_products_count", 0)
-            products_list = products_data.get("products", [])
+            # Extract pagination info from response (Zid API structure)
+            total_count = products_data.get("count", 0)
+            products_list = products_data.get("results", [])
             
             # Build enhanced response
             response = {
@@ -388,20 +387,12 @@ async def get_products(
                     "has_prev": page > 1
                 },
                 "filters_applied": {
-                    "category_id": category_id,
-                    "price_range": {"min": min_price, "max": max_price} if min_price or max_price else None,
-                    "is_active": is_active,
-                    "is_featured": is_featured,
-                    "has_variants": has_variants,
-                    "stock_status": stock_status,
-                    "search": search,
-                    "sku": sku,
-                    "barcode": barcode,
-                    "tags": tags.split(",") if tags else None
+                    "search": search,  # Applied via attribute_values
+                    "page": page,
+                    "page_size": limit
                 },
                 "sorting": {
-                    "sort_by": sort_by,
-                    "sort_order": sort_order
+                    "note": "Zid API handles sorting internally"
                 },
                 "metadata": {
                     "results_count": len(products_list),
