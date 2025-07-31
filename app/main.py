@@ -22,9 +22,21 @@ async def lifespan(app: FastAPI):
     """Application lifespan management"""
     logger.info("Starting Zid Integration Service...")
     
-    # Initialize database
-    await init_db()
-    logger.info("Database initialized successfully")
+    # Run database migrations
+    try:
+        import subprocess
+        logger.info("Running database migrations...")
+        result = subprocess.run(["alembic", "upgrade", "head"], 
+                              capture_output=True, text=True, cwd=".")
+        if result.returncode != 0:
+            logger.error(f"Migration failed: {result.stderr}")
+            raise Exception(f"Database migration failed: {result.stderr}")
+        logger.info("Database migrations completed successfully")
+    except Exception as e:
+        logger.error(f"Failed to run migrations: {str(e)}")
+        # Don't fail startup - try to initialize tables directly
+        await init_db()
+        logger.info("Database initialized with direct table creation")
     
     yield
     
