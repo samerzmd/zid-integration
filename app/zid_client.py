@@ -30,15 +30,16 @@ class ZidAPIClient:
         return headers
     
     def _get_manager_headers(self) -> Dict[str, str]:
-        """Get headers for manager-specific endpoints that require X-Manager-Token"""
+        """Get headers for manager-specific endpoints per Zid documentation"""
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
         if self.access_token:
-            # For manager endpoints, use only X-Manager-Token (OAuth access token)
-            # Authorization header might be for partner authentication which we don't have
-            headers["X-Manager-Token"] = self.access_token
+            # According to Zid docs: Authorization is Bearer token, X-MANAGER-TOKEN is access token
+            # But we only have one token from OAuth - try using it for both
+            headers["Authorization"] = f"Bearer {self.access_token}"
+            headers["X-MANAGER-TOKEN"] = self.access_token
         return headers
     
     async def exchange_code_for_token(self, code: str, state: Optional[str] = None) -> TokenResponse:
@@ -102,10 +103,10 @@ class ZidAPIClient:
     
     async def get_merchant_info(self) -> Dict[str, Any]:
         """Get current merchant information"""
-        # Try raw token without Bearer prefix (Zid might use encrypted tokens)
+        # Use manager headers as per Zid documentation
         response = await self.client.get(
             f"{self.base_url}/v1/managers/account/profile",
-            headers=self._get_headers_raw_token()
+            headers=self._get_manager_headers()
         )
         response.raise_for_status()
         return response.json()

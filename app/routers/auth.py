@@ -38,6 +38,8 @@ async def oauth_callback(
         authenticated_client = ZidAPIClient(access_token=token_response.access_token)
         try:
             logger.info(f"Attempting to fetch merchant info with token: {token_response.access_token[:50]}...")
+            headers = authenticated_client._get_manager_headers()
+            logger.info(f"Using headers: Authorization={headers.get('Authorization', 'None')[:50]}..., X-MANAGER-TOKEN={headers.get('X-MANAGER-TOKEN', 'None')[:50]}...")
             merchant_info = await authenticated_client.get_merchant_info()
             # Extract manager ID from the profile response
             merchant_id = str(merchant_info.get("id", "unknown"))
