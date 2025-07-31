@@ -18,11 +18,15 @@ if "sslmode=" in async_database_url:
     parsed = urlparse(async_database_url)
     query_params = parse_qs(parsed.query)
     
-    # Remove sslmode parameter as asyncpg doesn't support it
+    # Remove sslmode parameter and add ssl=require for asyncpg
     if 'sslmode' in query_params:
         del query_params['sslmode']
     
-    # Reconstruct the URL without sslmode
+    # Force SSL connection for DigitalOcean managed PostgreSQL
+    # asyncpg uses different SSL parameters than psycopg2
+    query_params['ssl'] = ['true']
+    
+    # Reconstruct the URL with ssl=require
     new_query = urlencode(query_params, doseq=True)
     async_database_url = urlunparse((
         parsed.scheme,
