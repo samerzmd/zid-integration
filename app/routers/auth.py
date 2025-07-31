@@ -62,49 +62,41 @@ async def authorize_merchant(request: AuthorizeRequest):
         raise HTTPException(status_code=500, detail="Failed to generate authorization URL")
 
 @router.get("/zid")
-async def zid_install_redirect(
-    request: Request,
-    shop: Optional[str] = Query(None, description="Merchant store identifier from Zid"),
-    hmac: Optional[str] = Query(None, description="HMAC signature for security"),
-    timestamp: Optional[str] = Query(None, description="Request timestamp")
-):
+async def zid_install_redirect(request: Request):
     """
     Handle Zid app installation redirect (when merchant clicks 'Install on my store')
     
     This is where Zid sends merchants when they click install in the App Store.
-    We need to redirect them to Zid's OAuth authorization page.
+    According to Zid's OAuth flow, we immediately redirect to Zid's OAuth authorization.
+    The merchant identification happens in the OAuth callback with the authorization code.
     
-    Args:
-        shop: Store identifier from Zid
-        hmac: Security signature
-        timestamp: Request timestamp
-        
     Returns:
         Redirect to Zid OAuth authorization
     """
     query_params = dict(request.query_params)
     logger.info(f"Zid install redirect received with params: {query_params}")
     
-    if not shop:
-        logger.error("Missing shop parameter in Zid install redirect")
-        raise HTTPException(status_code=400, detail="Missing shop parameter")
-    
     try:
+        # Generate a unique merchant ID for this installation attempt
+        # In a real app, you might extract this from session or other context
+        import uuid
+        temp_merchant_id = f"install-{uuid.uuid4().hex[:8]}"
+        
         oauth_service = OAuthService()
         
-        # Generate authorization URL for this merchant/shop
+        # Generate authorization URL - Zid will identify the merchant during OAuth
         auth_url = await oauth_service.generate_authorization_url(
-            merchant_id=shop,
+            merchant_id=temp_merchant_id,
             scopes=["read_orders", "read_products", "read_customers", "webhooks"]
         )
         
-        logger.info(f"Redirecting shop {shop} to Zid OAuth authorization")
+        logger.info(f"Redirecting to Zid OAuth authorization for installation {temp_merchant_id}")
         
         # Redirect to Zid's authorization page
         return RedirectResponse(url=auth_url, status_code=302)
         
     except Exception as e:
-        logger.error(f"Failed to handle Zid install redirect for shop {shop}: {str(e)}")
+        logger.error(f"Failed to handle Zid install redirect: {str(e)}")
         raise HTTPException(status_code=500, detail="Installation failed")
 
 @router.get("/zid/callback")
