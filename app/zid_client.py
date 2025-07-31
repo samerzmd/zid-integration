@@ -20,14 +20,14 @@ class ZidAPIClient:
         return headers
     
     def _get_manager_headers(self) -> Dict[str, str]:
-        """Get headers for manager-specific endpoints that require both Authorization and X-Manager-Token"""
+        """Get headers for manager-specific endpoints that require X-Manager-Token"""
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
         if self.access_token:
-            # For manager endpoints, both Authorization and X-Manager-Token are required
-            headers["Authorization"] = f"Bearer {self.access_token}"
+            # For manager endpoints, use only X-Manager-Token (OAuth access token)
+            # Authorization header might be for partner authentication which we don't have
             headers["X-Manager-Token"] = self.access_token
         return headers
     
