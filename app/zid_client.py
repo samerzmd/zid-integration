@@ -80,12 +80,32 @@ class ZidAPIClient:
     
     async def get_merchant_info(self) -> Dict[str, Any]:
         """Get current merchant information"""
-        response = await self.client.get(
-            f"{self.base_url}/v1/managers/account",
-            headers=self._get_headers()
-        )
-        response.raise_for_status()
-        return response.json()
+        # Try different possible endpoints for merchant info
+        endpoints_to_try = [
+            "/v1/managers/account",
+            "/v1/manager/account", 
+            "/v1/managers/profile",
+            "/v1/manager/profile",
+            "/v1/managers/me",
+            "/v1/manager/me",
+            "/v1/account",
+            "/v1/profile",
+            "/v1/me"
+        ]
+        
+        for endpoint in endpoints_to_try:
+            try:
+                response = await self.client.get(
+                    f"{self.base_url}{endpoint}",
+                    headers=self._get_headers()
+                )
+                if response.status_code == 200:
+                    return response.json()
+            except Exception:
+                continue
+        
+        # If all endpoints fail, raise an exception
+        raise Exception("No valid merchant info endpoint found")
     
     async def get_orders(self, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         """Get list of orders"""
