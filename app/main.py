@@ -8,6 +8,7 @@ from .database import engine, Base
 from .routers import auth, products, orders, webhooks
 from .schemas import HealthResponse
 from .exceptions import ZidAPIException
+from .config import settings
 
 
 # Configure logging
