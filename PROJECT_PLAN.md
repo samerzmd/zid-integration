@@ -67,12 +67,15 @@
 - [x] Create /auth/test-authorize/{merchant_id} endpoint (testing)
 - [x] Create /auth/health endpoint (service health check)
 
-### 1.5 API Client Layer
-- [ ] Create ZidAPIClient with dual-header authentication
-- [ ] Implement automatic token refresh on expiry
-- [ ] Add rate limiting and circuit breaker patterns
-- [ ] Build retry logic for API calls
-- [ ] Create token validation methods
+### 1.5 API Client Layer ✅ **COMPLETE**
+- [x] Create ZidAPIClient with dual-header authentication
+- [x] Implement automatic token refresh on expiry
+- [x] Add rate limiting and circuit breaker patterns
+- [x] Build retry logic for API calls
+- [x] Create token validation methods
+- [x] Create API testing endpoints (/api/test, /api/health, /api/validate-tokens)
+- [x] Successfully tested with real Zid API (orders endpoint working)
+- [x] Add merchant listing endpoint (/api/merchants)
 
 ---
 
