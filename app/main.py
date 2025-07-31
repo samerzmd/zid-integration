@@ -65,9 +65,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include authentication router
-from .routers import auth
+# Include routers
+from .routers import auth, api
 app.include_router(auth.router)
+app.include_router(api.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -93,7 +94,8 @@ async def root():
             "health": "/health",
             "docs": "/docs",
             "openapi": "/openapi.json",
-            "auth": "/auth"
+            "auth": "/auth",
+            "api": "/api"
         }
     }
 
