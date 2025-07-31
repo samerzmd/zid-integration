@@ -25,7 +25,7 @@ services:
     type: SECRET
   - key: ZID_REDIRECT_URI
     scope: RUN_TIME
-    value: https://zid-integration-service-xxxxx.ondigitalocean.app/auth/callback
+    value: https://zid-kz6se.ondigitalocean.app/auth/callback
   - key: ZID_API_BASE_URL
     scope: RUN_TIME
     value: https://api.zid.sa
