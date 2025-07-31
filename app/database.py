@@ -8,8 +8,13 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 # Database engine
+# Convert postgresql:// to postgresql+asyncpg:// for async support
+database_url = settings.database_url
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 engine = create_async_engine(
-    settings.database_url,
+    database_url,
     echo=settings.env == "development",
     pool_pre_ping=True,
     pool_recycle=300,
