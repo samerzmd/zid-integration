@@ -34,10 +34,17 @@ async def oauth_callback(
         # Exchange code for token
         token_response = await client.exchange_code_for_token(code, state)
         
-        # Extract merchant_id from token or make API call to get it
-        # For now, we'll use a placeholder - in real implementation, 
-        # you'd get this from the token payload or a separate API call
-        merchant_id = "merchant_placeholder"  # TODO: Get actual merchant ID
+        # Get merchant information using the access token
+        authenticated_client = ZidAPIClient(access_token=token_response.access_token)
+        try:
+            merchant_info = await authenticated_client.get_merchant_info()
+            merchant_id = str(merchant_info.get("id", merchant_info.get("merchant_id", "unknown")))
+        except Exception as e:
+            logger.warning(f"Could not fetch merchant info: {str(e)}, using fallback")
+            # Fallback: extract from token or use a default
+            merchant_id = "default_merchant"
+        finally:
+            await authenticated_client.close()
         
         # Save token to database
         token_create = MerchantTokenCreate(

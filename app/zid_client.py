@@ -78,6 +78,15 @@ class ZidAPIClient:
         response.raise_for_status()
         return response.json()
     
+    async def get_merchant_info(self) -> Dict[str, Any]:
+        """Get current merchant information"""
+        response = await self.client.get(
+            f"{self.base_url}/v1/managers/account",
+            headers=self._get_headers()
+        )
+        response.raise_for_status()
+        return response.json()
+    
     async def get_orders(self, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         """Get list of orders"""
         params = {
