@@ -142,7 +142,8 @@ async def cleanup_old_data():
 @router.get("/test/{merchant_id}")
 async def test_api_client(
     merchant_id: str,
-    endpoint: str = Query(default="/store", description="Zid API endpoint to test")
+    endpoint: str = Query(default="/store", description="Zid API endpoint to test"),
+    show_tokens: bool = Query(default=False, description="DANGER: Show actual tokens for debugging")
 ):
     """
     Test the Zid API client with a merchant's stored tokens
@@ -150,12 +151,35 @@ async def test_api_client(
     Args:
         merchant_id: Merchant identifier
         endpoint: Zid API endpoint to test (default: /store)
+        show_tokens: DANGER - shows real tokens if true
         
     Returns:
         API test results
     """
     try:
         client = ZidAPIClient(merchant_id)
+        
+        # If show_tokens is requested, return the headers instead of making API call
+        if show_tokens:
+            headers = await client._get_headers()
+            if headers:
+                return {
+                    "success": True,
+                    "merchant_id": merchant_id,
+                    "headers": headers,
+                    "curl_command": f'''curl -X GET "https://api.zid.sa{endpoint}?page=1&page_size=5" \\
+  -H "Access-Token: {headers['Access-Token']}" \\
+  -H "Authorization: {headers['Authorization']}" \\
+  -H "Store-Id: {headers['Store-Id']}" \\
+  -H "Role: {headers['Role']}" \\
+  -H "Accept-Language: {headers['Accept-Language']}" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -H "User-Agent: {headers['User-Agent']}"''',
+                    "warning": "REAL TOKENS EXPOSED - Use immediately!"
+                }
+            else:
+                return {"success": False, "error": "Could not get headers"}
         
         # Make API request
         data = await client.get(endpoint)
