@@ -4,9 +4,9 @@ from pydantic import BaseModel
 import logging
 
 from ..api.zid_client import ZidAPIClient
-from ..models.database import ZidCredential
+from ..models.database import ZidCredential, OAuthState, TokenAuditLog
 from ..database import get_db
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,82 @@ async def list_merchants():
     except Exception as e:
         logger.error(f"Failed to list merchants: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to list merchants: {str(e)}")
+
+@router.delete("/merchants/{merchant_id}")
+async def delete_merchant(merchant_id: str):
+    """
+    Delete a merchant and all associated data
+    
+    Args:
+        merchant_id: Merchant identifier to delete
+        
+    Returns:
+        Deletion confirmation
+    """
+    try:
+        async with get_db() as db:
+            # Find the merchant credential
+            stmt = select(ZidCredential).where(ZidCredential.merchant_id == merchant_id)
+            result = await db.execute(stmt)
+            credential = result.scalar_one_or_none()
+            
+            if not credential:
+                raise HTTPException(status_code=404, detail=f"Merchant {merchant_id} not found")
+            
+            # Delete associated audit logs
+            audit_stmt = delete(TokenAuditLog).where(TokenAuditLog.merchant_id == merchant_id)
+            await db.execute(audit_stmt)
+            
+            # Delete the credential
+            await db.delete(credential)
+            await db.commit()
+            
+            logger.info(f"Deleted merchant {merchant_id} and all associated data")
+            
+            return {
+                "success": True,
+                "merchant_id": merchant_id,
+                "message": "Merchant and all associated data deleted successfully"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete merchant: {str(e)}")
+
+@router.delete("/cleanup")
+async def cleanup_old_data():
+    """
+    Clean up old OAuth states and expired data
+    
+    Returns:
+        Cleanup results
+    """
+    try:
+        from datetime import datetime
+        
+        async with get_db() as db:
+            # Delete old/expired OAuth states
+            oauth_stmt = delete(OAuthState).where(
+                OAuthState.expires_at < datetime.utcnow()
+            )
+            oauth_result = await db.execute(oauth_stmt)
+            
+            await db.commit()
+            
+            cleanup_result = {
+                "success": True,
+                "expired_oauth_states_deleted": oauth_result.rowcount,
+                "message": "Cleanup completed successfully"
+            }
+            
+            logger.info(f"Cleanup completed: {cleanup_result}")
+            return cleanup_result
+            
+    except Exception as e:
+        logger.error(f"Cleanup failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
 
 @router.get("/test/{merchant_id}")
 async def test_api_client(
