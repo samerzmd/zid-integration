@@ -1,0 +1,101 @@
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+import logging
+import os
+from contextlib import asynccontextmanager
+
+# Configure logging
+logging.basicConfig(
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper()),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan management"""
+    logger.info("Starting Zid Integration Service...")
+    
+    # TODO: Initialize database when we add it in Phase 1
+    # await init_db()
+    
+    yield
+    
+    logger.info("Shutting down Zid Integration Service...")
+
+app = FastAPI(
+    title="Zid Integration Service",
+    description="OAuth 2.0 authentication and API integration service for Zid e-commerce platform",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Security middleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]  # TODO: Configure for production
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # TODO: Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# TODO: Include routers when we create them in Phase 1
+# app.include_router(auth.router)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler"""
+    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "message": "An unexpected error occurred"
+        }
+    )
+
+@app.get("/")
+async def root():
+    """Root endpoint with service information"""
+    return {
+        "service": "Zid Integration Service",
+        "version": "1.0.0",
+        "status": "active",
+        "phase": "0 - Infrastructure Setup Complete",
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "openapi": "/openapi.json"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and DigitalOcean"""
+    return {
+        "status": "healthy",
+        "service": "zid-integration-service",
+        "phase": "infrastructure-ready"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    port = int(os.getenv("PORT", 8000))
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        reload=os.getenv("ENV") == "development"
+    )
