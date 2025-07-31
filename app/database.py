@@ -11,6 +11,13 @@ if database_url.startswith("postgresql://"):
 else:
     async_database_url = database_url
 
+# Handle SSL parameters for asyncpg
+if "sslmode=" in async_database_url:
+    # Replace sslmode with ssl for asyncpg compatibility
+    async_database_url = async_database_url.replace("sslmode=require", "ssl=true")
+    async_database_url = async_database_url.replace("sslmode=prefer", "ssl=true")
+    async_database_url = async_database_url.replace("sslmode=disable", "ssl=false")
+
 # Create async engine for PostgreSQL
 engine = create_async_engine(
     async_database_url, 
