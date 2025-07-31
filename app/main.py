@@ -53,8 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# TODO: Include routers when we create them in Phase 1
-# app.include_router(auth.router)
+# Include authentication router
+from .routers import auth
+app.include_router(auth.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -75,11 +76,12 @@ async def root():
         "service": "Zid Integration Service",
         "version": "1.0.0",
         "status": "active",
-        "phase": "1 - Database Foundation Complete",
+        "phase": "1.2 - OAuth Service Implementation",
         "endpoints": {
             "health": "/health",
             "docs": "/docs",
-            "openapi": "/openapi.json"
+            "openapi": "/openapi.json",
+            "auth": "/auth"
         }
     }
 
