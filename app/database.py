@@ -13,7 +13,26 @@ if database_url.startswith("postgresql://"):
 else:
     async_database_url = database_url
 
-# asyncpg supports sslmode=require directly, no need to change it
+# Handle SSL for asyncpg - remove sslmode and rely on DigitalOcean's default SSL
+if "sslmode=" in async_database_url:
+    # Remove sslmode parameter as asyncpg doesn't support it
+    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+    parsed = urlparse(async_database_url)
+    query_params = parse_qs(parsed.query)
+    
+    if 'sslmode' in query_params:
+        del query_params['sslmode']
+    
+    # Reconstruct URL without sslmode (DigitalOcean uses SSL by default)
+    new_query = urlencode(query_params, doseq=True)
+    async_database_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
 
 # Create async engine for PostgreSQL
 engine = create_async_engine(
@@ -22,7 +41,11 @@ engine = create_async_engine(
     pool_size=5,
     max_overflow=10,
     pool_pre_ping=True,
-    pool_recycle=3600
+    pool_recycle=3600,
+    # Force SSL for DigitalOcean managed PostgreSQL
+    connect_args={
+        "ssl": "require"
+    }
 )
 
 # Create async session maker
