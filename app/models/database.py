@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Index
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import uuid
-
-Base = declarative_base()
+from ..database import Base
 
 class ZidCredential(Base):
     """Secure storage for Zid OAuth credentials with encryption at rest"""
