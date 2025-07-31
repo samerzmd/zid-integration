@@ -5,18 +5,33 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from .config import settings
 
 # Convert PostgreSQL URL to async format for asyncpg
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
 database_url = settings.database_url
 if database_url.startswith("postgresql://"):
     async_database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
 else:
     async_database_url = database_url
 
-# Handle SSL parameters for asyncpg
+# Handle SSL parameters for asyncpg properly
 if "sslmode=" in async_database_url:
-    # Replace sslmode with ssl for asyncpg compatibility
-    async_database_url = async_database_url.replace("sslmode=require", "ssl=true")
-    async_database_url = async_database_url.replace("sslmode=prefer", "ssl=true")
-    async_database_url = async_database_url.replace("sslmode=disable", "ssl=false")
+    parsed = urlparse(async_database_url)
+    query_params = parse_qs(parsed.query)
+    
+    # Remove sslmode parameter as asyncpg doesn't support it
+    if 'sslmode' in query_params:
+        del query_params['sslmode']
+    
+    # Reconstruct the URL without sslmode
+    new_query = urlencode(query_params, doseq=True)
+    async_database_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
 
 # Create async engine for PostgreSQL
 engine = create_async_engine(
