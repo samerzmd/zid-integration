@@ -283,6 +283,50 @@ async def get_store_info(merchant_id: str):
         logger.error(f"Store info request failed for merchant {merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Store info request failed: {str(e)}")
 
+@router.get("/debug-headers/{merchant_id}")
+async def debug_headers(merchant_id: str):
+    """
+    Debug endpoint to show what headers would be sent to Zid API
+    (tokens are masked for security)
+    """
+    try:
+        client = ZidAPIClient(merchant_id)
+        headers = await client._get_headers()
+        
+        if headers:
+            # Mask sensitive values for security
+            debug_headers = {}
+            for key, value in headers.items():
+                if key in ["Access-Token", "Authorization"]:
+                    debug_headers[key] = f"{value[:10]}...{value[-4:]}" if len(value) > 14 else "***"
+                else:
+                    debug_headers[key] = value
+            
+            return {
+                "success": True,
+                "merchant_id": merchant_id,
+                "headers": debug_headers,
+                "curl_template": f"""curl -X GET "https://api.zid.sa/v1/products/" \\
+  -H "Access-Token: [YOUR_ACCESS_TOKEN]" \\
+  -H "Authorization: Bearer [YOUR_AUTH_TOKEN]" \\
+  -H "Store-Id: {headers.get('Store-Id', 'N/A')}" \\
+  -H "Role: {headers.get('Role', 'N/A')}" \\
+  -H "Accept-Language: {headers.get('Accept-Language', 'N/A')}" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -H "User-Agent: {headers.get('User-Agent', 'N/A')}" """
+            }
+        else:
+            return {
+                "success": False,
+                "merchant_id": merchant_id,
+                "error": "Failed to get headers"
+            }
+            
+    except Exception as e:
+        logger.error(f"Debug headers failed for merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Debug headers failed: {str(e)}")
+
 @router.get("/products/{merchant_id}")
 async def get_products(
     merchant_id: str,
@@ -365,7 +409,7 @@ async def get_products(
         
         logger.info(f"Fetching products for merchant {merchant_id} with filters: {params}")
         
-        # Make request to Zid API - Updated to correct endpoint
+        # Make request to Zid API - Updated to correct endpoint per Zid docs
         products_data = await client.get("/v1/products/", params=params)
         
         if products_data:
