@@ -6,6 +6,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from .config import settings
+from .database import init_db, close_db
+
 # Configure logging
 logging.basicConfig(
     level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper()),
@@ -19,12 +22,14 @@ async def lifespan(app: FastAPI):
     """Application lifespan management"""
     logger.info("Starting Zid Integration Service...")
     
-    # TODO: Initialize database when we add it in Phase 1
-    # await init_db()
+    # Initialize database
+    await init_db()
+    logger.info("Database initialized successfully")
     
     yield
     
     logger.info("Shutting down Zid Integration Service...")
+    await close_db()
 
 app = FastAPI(
     title="Zid Integration Service",
@@ -70,7 +75,7 @@ async def root():
         "service": "Zid Integration Service",
         "version": "1.0.0",
         "status": "active",
-        "phase": "0 - Infrastructure Setup Complete",
+        "phase": "1 - Database Foundation Complete",
         "endpoints": {
             "health": "/health",
             "docs": "/docs",

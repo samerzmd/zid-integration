@@ -6,8 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-# Import your models here when they're created
-# from app.models import Base
+# Import your models here
+from app.models.database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -25,8 +25,7 @@ if database_url:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# target_metadata = Base.metadata
-target_metadata = None  # Will be updated when models are created
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
