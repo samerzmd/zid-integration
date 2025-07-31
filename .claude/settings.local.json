@@ -7,7 +7,9 @@
       "Bash(docker-compose up:*)",
       "Bash(docker-compose down:*)",
       "Bash(docker-compose:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:zid-integration-pgnre.ondigitalocean.app)",
+      "WebFetch(domain:zid-s7xi6.ondigitalocean.app)"
     ],
     "deny": []
   }

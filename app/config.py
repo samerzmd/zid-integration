@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Zid OAuth Configuration
     zid_client_id: Optional[str] = None
     zid_client_secret: Optional[str] = None
-    zid_redirect_uri: str = "http://localhost:8000/auth/callback"
+    zid_redirect_uri: str = "https://zid-s7xi6.ondigitalocean.app/auth/callback"
     
     # Security
     encryption_key: str  # Required - 32 byte base64 encoded key
