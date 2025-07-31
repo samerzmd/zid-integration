@@ -38,7 +38,9 @@ async def oauth_callback(
         authenticated_client = ZidAPIClient(access_token=token_response.access_token)
         try:
             merchant_info = await authenticated_client.get_merchant_info()
-            merchant_id = str(merchant_info.get("id", merchant_info.get("merchant_id", "unknown")))
+            # Extract manager ID from the profile response
+            merchant_id = str(merchant_info.get("id", "unknown"))
+            logger.info(f"Successfully retrieved merchant ID: {merchant_id}")
         except Exception as e:
             logger.warning(f"Could not fetch merchant info: {str(e)}, using fallback")
             # Fallback: extract from token or use a default
