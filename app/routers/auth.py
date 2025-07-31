@@ -61,7 +61,53 @@ async def authorize_merchant(request: AuthorizeRequest):
         logger.error(f"Authorization failed for merchant {request.merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate authorization URL")
 
-@router.get("/callback")
+@router.get("/zid")
+async def zid_install_redirect(
+    request: Request,
+    shop: Optional[str] = Query(None, description="Merchant store identifier from Zid"),
+    hmac: Optional[str] = Query(None, description="HMAC signature for security"),
+    timestamp: Optional[str] = Query(None, description="Request timestamp")
+):
+    """
+    Handle Zid app installation redirect (when merchant clicks 'Install on my store')
+    
+    This is where Zid sends merchants when they click install in the App Store.
+    We need to redirect them to Zid's OAuth authorization page.
+    
+    Args:
+        shop: Store identifier from Zid
+        hmac: Security signature
+        timestamp: Request timestamp
+        
+    Returns:
+        Redirect to Zid OAuth authorization
+    """
+    query_params = dict(request.query_params)
+    logger.info(f"Zid install redirect received with params: {query_params}")
+    
+    if not shop:
+        logger.error("Missing shop parameter in Zid install redirect")
+        raise HTTPException(status_code=400, detail="Missing shop parameter")
+    
+    try:
+        oauth_service = OAuthService()
+        
+        # Generate authorization URL for this merchant/shop
+        auth_url = await oauth_service.generate_authorization_url(
+            merchant_id=shop,
+            scopes=["read_orders", "read_products", "read_customers", "webhooks"]
+        )
+        
+        logger.info(f"Redirecting shop {shop} to Zid OAuth authorization")
+        
+        # Redirect to Zid's authorization page
+        return RedirectResponse(url=auth_url, status_code=302)
+        
+    except Exception as e:
+        logger.error(f"Failed to handle Zid install redirect for shop {shop}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Installation failed")
+
+@router.get("/zid/callback")
 async def oauth_callback(
     request: Request,
     code: Optional[str] = Query(None, description="Authorization code from Zid"),
@@ -275,8 +321,11 @@ async def auth_health_check():
             "status": "healthy",
             "service": "authentication",
             "oauth_configured": bool(oauth_service.client_id and oauth_service.client_secret),
-            "callback_url": "https://zid-s7xi6.ondigitalocean.app/auth/callback",
+            "zid_install_url": "https://zid-s7xi6.ondigitalocean.app/auth/zid",
+            "zid_callback_url": "https://zid-s7xi6.ondigitalocean.app/auth/zid/callback",
             "endpoints": {
+                "zid_install": "/auth/zid",
+                "zid_callback": "/auth/zid/callback",
                 "authorize": "/auth/authorize",
                 "callback": "/auth/callback", 
                 "test": "/auth/test-authorize/{merchant_id}",

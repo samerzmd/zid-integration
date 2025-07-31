@@ -47,7 +47,7 @@ services:
     type: SECRET
   - key: ZID_REDIRECT_URI
     scope: RUN_AND_BUILD_TIME
-    value: https://zid-s7xi6.ondigitalocean.app/auth/callback
+    value: https://zid-s7xi6.ondigitalocean.app/auth/zid/callback
   - key: REDIS_URL
     scope: RUN_AND_BUILD_TIME
     type: SECRET

@@ -9,7 +9,8 @@
       "Bash(docker-compose:*)",
       "Bash(curl:*)",
       "WebFetch(domain:zid-integration-pgnre.ondigitalocean.app)",
-      "WebFetch(domain:zid-s7xi6.ondigitalocean.app)"
+      "WebFetch(domain:zid-s7xi6.ondigitalocean.app)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
