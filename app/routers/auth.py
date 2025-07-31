@@ -64,8 +64,8 @@ async def authorize_merchant(request: AuthorizeRequest):
 @router.get("/callback")
 async def oauth_callback(
     request: Request,
-    code: str = Query(..., description="Authorization code from Zid"),
-    state: str = Query(..., description="State parameter for CSRF protection"),
+    code: Optional[str] = Query(None, description="Authorization code from Zid"),
+    state: Optional[str] = Query(None, description="State parameter for CSRF protection"),
     error: Optional[str] = Query(None, description="Error from OAuth provider")
 ):
     """
@@ -79,10 +79,24 @@ async def oauth_callback(
     Returns:
         Callback result with merchant information
     """
+    # Log all query parameters for debugging
+    query_params = dict(request.query_params)
+    logger.info(f"OAuth callback received with params: {query_params}")
+    
     # Handle OAuth errors
     if error:
         logger.error(f"OAuth callback received error: {error}")
         raise HTTPException(status_code=400, detail=f"OAuth error: {error}")
+    
+    # Handle missing required parameters
+    if not code or not state:
+        logger.warning(f"OAuth callback missing required parameters. Code: {bool(code)}, State: {bool(state)}")
+        return {
+            "error": "Missing required OAuth parameters",
+            "message": "This endpoint expects 'code' and 'state' parameters from Zid OAuth flow",
+            "received_params": query_params,
+            "instructions": "Please initiate OAuth flow by calling POST /auth/authorize first"
+        }
     
     try:
         oauth_service = OAuthService()
@@ -224,6 +238,34 @@ async def revoke_merchant_auth(
         logger.error(f"Failed to revoke auth for merchant {merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to revoke authentication")
 
+@router.get("/test-authorize/{merchant_id}")
+async def test_authorization_flow(merchant_id: str):
+    """
+    Test endpoint to generate OAuth authorization URL for a merchant
+    
+    Args:
+        merchant_id: Test merchant identifier
+        
+    Returns:
+        Authorization URL for testing
+    """
+    try:
+        oauth_service = OAuthService()
+        auth_url = await oauth_service.generate_authorization_url(
+            merchant_id=merchant_id,
+            scopes=["read_orders", "read_products", "read_customers", "webhooks"]
+        )
+        
+        return {
+            "merchant_id": merchant_id,
+            "authorization_url": auth_url,
+            "instructions": "Visit the authorization_url in your browser to complete OAuth flow"
+        }
+        
+    except Exception as e:
+        logger.error(f"Test authorization failed for merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate test authorization URL")
+
 @router.get("/health")
 async def auth_health_check():
     """Health check endpoint for authentication service"""
@@ -232,7 +274,16 @@ async def auth_health_check():
         return {
             "status": "healthy",
             "service": "authentication",
-            "oauth_configured": bool(oauth_service.client_id and oauth_service.client_secret)
+            "oauth_configured": bool(oauth_service.client_id and oauth_service.client_secret),
+            "callback_url": "https://zid-s7xi6.ondigitalocean.app/auth/callback",
+            "endpoints": {
+                "authorize": "/auth/authorize",
+                "callback": "/auth/callback", 
+                "test": "/auth/test-authorize/{merchant_id}",
+                "status": "/auth/status/{merchant_id}",
+                "refresh": "/auth/refresh/{merchant_id}",
+                "revoke": "/auth/revoke/{merchant_id}"
+            }
         }
     except Exception as e:
         logger.error(f"Auth health check failed: {str(e)}")
