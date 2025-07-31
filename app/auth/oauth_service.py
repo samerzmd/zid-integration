@@ -217,19 +217,40 @@ class OAuthService:
                 
                 token_data = response.json()
                 
-                # Validate Zid's triple token response
-                required_fields = ["access_token", "Authorization", "refresh_token"]
-                missing_fields = [field for field in required_fields if field not in token_data]
+                # Log the actual token response for debugging
+                logger.info(f"Token response fields: {list(token_data.keys())}")
+                
+                # Validate required tokens - check both capitalized and lowercase versions
+                access_token = token_data.get("access_token")
+                authorization_token = token_data.get("Authorization") or token_data.get("authorization")
+                refresh_token = token_data.get("refresh_token")
+                
+                missing_fields = []
+                if not access_token:
+                    missing_fields.append("access_token")
+                if not authorization_token:
+                    missing_fields.append("Authorization/authorization")
+                if not refresh_token:
+                    missing_fields.append("refresh_token")
                 
                 if missing_fields:
                     logger.error(f"Missing token fields: {missing_fields}")
+                    logger.error(f"Full token response: {token_data}")
                     raise HTTPException(
                         status_code=400,
                         detail=f"Incomplete token response: missing {missing_fields}"
                     )
                 
+                # Normalize the response to use consistent field names
+                normalized_response = {
+                    "access_token": access_token,
+                    "Authorization": authorization_token,
+                    "refresh_token": refresh_token,
+                    **{k: v for k, v in token_data.items() if k not in ["access_token", "Authorization", "authorization", "refresh_token"]}
+                }
+                
                 logger.info("Token exchange completed successfully")
-                return token_data
+                return normalized_response
                 
         except httpx.RequestError as e:
             logger.error(f"HTTP request failed during token exchange: {str(e)}")
@@ -403,19 +424,33 @@ class OAuthService:
                 
                 token_data = response.json()
                 
-                # Validate response has required tokens
-                required_fields = ["access_token", "Authorization"]
-                missing_fields = [field for field in required_fields if field not in token_data]
+                # Validate response has required tokens - check both cases
+                access_token = token_data.get("access_token")
+                authorization_token = token_data.get("Authorization") or token_data.get("authorization")
+                
+                missing_fields = []
+                if not access_token:
+                    missing_fields.append("access_token")
+                if not authorization_token:
+                    missing_fields.append("Authorization/authorization")
                 
                 if missing_fields:
                     logger.error(f"Missing token fields in refresh response: {missing_fields}")
+                    logger.error(f"Full refresh token response: {token_data}")
                     raise HTTPException(
                         status_code=400,
                         detail=f"Incomplete refresh response: missing {missing_fields}"
                     )
                 
+                # Create normalized response
+                normalized_response = {
+                    "access_token": access_token,
+                    "Authorization": authorization_token,
+                    **{k: v for k, v in token_data.items() if k not in ["access_token", "Authorization", "authorization"]}
+                }
+                
                 logger.info("Token refresh exchange completed successfully")
-                return token_data
+                return normalized_response
                 
         except httpx.RequestError as e:
             logger.error(f"HTTP request failed during token refresh: {str(e)}")
