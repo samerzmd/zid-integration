@@ -88,7 +88,7 @@ async def root():
         "service": "Zid Integration Service",
         "version": "1.0.0",
         "status": "active",
-        "phase": "1.2 - OAuth Service Implementation",
+        "phase": "1 - Core Authentication System Complete",
         "endpoints": {
             "health": "/health",
             "docs": "/docs",

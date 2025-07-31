@@ -50,21 +50,29 @@
 - [x] Add token refresh and lifecycle management
 - [x] Handle all OAuth error scenarios
 - [x] Create OAuth callback handler
-- [x] Create FastAPI authentication endpoints (/auth/authorize, /auth/callback, /auth/refresh, /auth/status, /auth/revoke)
 
-### 1.3 API Client Layer
+### 1.3 Zid App Installation Endpoints ✅ **COMPLETE**
+- [x] Create /auth/zid endpoint (Zid install redirect)
+- [x] Create /auth/zid/callback endpoint (OAuth callback from Zid)
+- [x] Handle Zid's actual OAuth flow and token format
+- [x] Implement complete merchant installation process
+- [x] Successfully tested end-to-end OAuth flow
+
+### 1.4 Authentication Management Endpoints ✅ **COMPLETE**
+- [x] Create /auth/authorize endpoint (manual OAuth URL generation)
+- [x] Create /auth/callback endpoint (generic OAuth callback)
+- [x] Create /auth/refresh/{merchant_id} endpoint
+- [x] Create /auth/status/{merchant_id} endpoint
+- [x] Create /auth/revoke/{merchant_id} endpoint
+- [x] Create /auth/test-authorize/{merchant_id} endpoint (testing)
+- [x] Create /auth/health endpoint (service health check)
+
+### 1.5 API Client Layer
 - [ ] Create ZidAPIClient with dual-header authentication
 - [ ] Implement automatic token refresh on expiry
 - [ ] Add rate limiting and circuit breaker patterns
 - [ ] Build retry logic for API calls
 - [ ] Create token validation methods
-
-### 1.4 Authentication Endpoints
-- [ ] Create /auth/authorize endpoint
-- [ ] Create /auth/callback endpoint
-- [ ] Create /auth/refresh endpoint
-- [ ] Create /auth/status endpoint
-- [ ] Create /auth/revoke endpoint
 
 ---
 
