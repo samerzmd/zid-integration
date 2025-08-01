@@ -176,7 +176,7 @@ async def get_products(merchant_id: str, page: int = 1, limit: int = 10, search:
         if search:
             params["attribute_values"] = search
 
-        response = await client.get("/products/", params=params)
+        response = await client.get("/v1/products/", params=params)
 
         return {
             "success": True,
