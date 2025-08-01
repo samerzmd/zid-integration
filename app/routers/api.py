@@ -140,66 +140,55 @@ async def cleanup_old_data():
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
 
 @router.get("/products/{merchant_id}")
-async def get_products(
-    merchant_id: str,
-    page: int = Query(default=1, ge=1, description="Page number"),
-    limit: int = Query(default=10, ge=1, le=50, description="Items per page (max 50)"),
-    search: Optional[str] = Query(default=None, description="Search by attribute values")
-):
+async def get_products(merchant_id: str, page: int = 1, limit: int = 10, search: Optional[str] = None):
     """
-    Retrieve a list of products from Zid API for a given merchant.
+    Retrieve a list of products for the given merchant.
+
+    This endpoint calls the Zid API using stored credentials and returns a paginated list
+    of products. Optional filtering by `attribute_values` is supported.
 
     Args:
-        merchant_id: Merchant identifier
-        page: Page number
-        limit: Number of items per page (Zid max: 50)
-        search: Comma-separated attribute values (e.g., nike,black,XL)
+        merchant_id: The merchant identifier
+        page: Page number for pagination (default: 1)
+        limit: Items per page (default: 10, max: 50)
+        search: Optional comma-separated attribute filters (e.g. "nike,black,large")
 
     Returns:
-        A paginated product list with metadata
+        List of products, pagination metadata, and API response fields
+
+    Zid API Reference:
+    https://developer.zid.sa/docs/apis/products#get-products
+
+    Required Headers (auto-injected):
+        - Authorization: Bearer {partner_token}
+        - Access-Token: {merchant_token}
+        - Store-Id: {store_id}
+        - Role: Manager
+        - Accept-Language: all-languages
+        - User-Agent: ZidIntegration/1.0.0 (Merchant: {merchant_id})
     """
     try:
         client = ZidAPIClient(merchant_id)
-
         params = {
             "page": page,
-            "page_size": limit,
+            "page_size": min(limit, 50),
         }
-
         if search:
             params["attribute_values"] = search
 
-        logger.info(f"Requesting products for merchant {merchant_id} with params: {params}")
-        products_data = await client.get("/v1/products/", params=params)
-
-        if not isinstance(products_data, dict):
-            logger.error(f"Unexpected response type from Zid: {type(products_data)}")
-            raise HTTPException(status_code=502, detail="Invalid response from Zid API")
-
-        total_count = products_data.get("count", 0)
-        products = products_data.get("results", [])
+        response = await client.get("/products/", params=params)
 
         return {
             "success": True,
             "merchant_id": merchant_id,
-            "products": products,
-            "pagination": {
-                "page": page,
-                "limit": limit,
-                "total_count": total_count,
-                "total_pages": (total_count + limit - 1) // limit,
-                "has_next": page * limit < total_count,
-                "has_prev": page > 1
-            },
-            "metadata": {
-                "results_count": len(products),
-                "attribute_values_used": search
-            }
+            "products": response.get("results", []),
+            "count": response.get("count"),
+            "next": response.get("next"),
+            "previous": response.get("previous")
         }
-
     except Exception as e:
-        logger.exception(f"Products request failed for merchant {merchant_id}")
-        raise HTTPException(status_code=500, detail=f"Products request failed: {str(e)}")
+        logger.error(f"Failed to get products for merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Products request failed")
 
 @router.get("/orders/{merchant_id}")
 async def get_orders(
