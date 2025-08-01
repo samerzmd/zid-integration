@@ -139,34 +139,6 @@ async def cleanup_old_data():
         logger.error(f"Cleanup failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
 
-@router.get("/store/{merchant_id}")
-async def get_store_info(merchant_id: str):
-    """
-    Get store information using the API client
-    
-    Args:
-        merchant_id: Merchant identifier
-        
-    Returns:
-        Store information from Zid API
-    """
-    try:
-        client = ZidAPIClient(merchant_id)
-        store_data = await client.get("/store")
-        
-        if store_data:
-            return {
-                "success": True,
-                "merchant_id": merchant_id,
-                "store": store_data
-            }
-        else:
-            raise HTTPException(status_code=400, detail="Failed to retrieve store information")
-            
-    except Exception as e:
-        logger.error(f"Store info request failed for merchant {merchant_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Store info request failed: {str(e)}")
-
 @router.get("/products/{merchant_id}")
 async def get_products(
     merchant_id: str,
