@@ -161,45 +161,6 @@ async def oauth_callback(
         logger.error(f"OAuth callback processing failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Authentication failed")
 
-@router.get("/status/{merchant_id}")
-async def get_auth_status(
-    merchant_id: str,
-    db: AsyncSession = Depends(get_db_session)
-):
-    """
-    Get authentication status for a merchant
-    
-    Args:
-        merchant_id: Merchant identifier
-        
-    Returns:
-        Authentication status information
-    """
-    try:
-        stmt = select(ZidCredential).where(
-            ZidCredential.merchant_id == merchant_id,
-            ZidCredential.is_active == True
-        )
-        result = await db.execute(stmt)
-        credential = result.scalar_one_or_none()
-        
-        if not credential:
-            return TokenStatusResponse(
-                merchant_id=merchant_id,
-                is_active=False
-            )
-        
-        return TokenStatusResponse(
-            merchant_id=merchant_id,
-            is_active=True,
-            expires_at=credential.expires_at.isoformat() if credential.expires_at else None,
-            last_updated=credential.updated_at.isoformat() if credential.updated_at else None
-        )
-        
-    except Exception as e:
-        logger.error(f"Failed to get auth status for merchant {merchant_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve authentication status")
-
 @router.post("/refresh/{merchant_id}")
 async def refresh_merchant_tokens(
     merchant_id: str,
@@ -275,57 +236,33 @@ async def revoke_merchant_auth(
     except Exception as e:
         logger.error(f"Failed to revoke auth for merchant {merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to revoke authentication")
-
-@router.get("/test-authorize/{merchant_id}")
-async def test_authorization_flow(merchant_id: str):
-    """
-    Test endpoint to generate OAuth authorization URL for a merchant
     
-    Args:
-        merchant_id: Test merchant identifier
-        
-    Returns:
-        Authorization URL for testing
+@router.get("/introspect/{merchant_id}", response_model=TokenStatusResponse)
+async def introspect_merchant_token(merchant_id: str):
     """
-    try:
-        oauth_service = OAuthService()
-        auth_url = await oauth_service.generate_authorization_url(
-            merchant_id=merchant_id,
-            scopes=["read_orders", "read_products", "read_customers", "webhooks"]
-        )
-        
-        return {
-            "merchant_id": merchant_id,
-            "authorization_url": auth_url,
-            "instructions": "Visit the authorization_url in your browser to complete OAuth flow"
-        }
-        
-    except Exception as e:
-        logger.error(f"Test authorization failed for merchant {merchant_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate test authorization URL")
+    Introspect and validate a merchant's access token with Zid API.
 
-@router.get("/health")
-async def auth_health_check():
-    """Health check endpoint for authentication service"""
+    This performs a real-time check with Zid, not just a DB status.
+
+    Args:
+        merchant_id: Merchant identifier
+
+    Returns:
+        Token status including whether active, expired, and timestamps
+    """
+    from ..api.zid_client import ZidAPIClient
+
     try:
-        oauth_service = OAuthService()
-        return {
-            "status": "healthy",
-            "service": "authentication",
-            "oauth_configured": bool(oauth_service.client_id and oauth_service.client_secret),
-            "zid_install_url": "https://zid-s7xi6.ondigitalocean.app/auth/zid",
-            "zid_callback_url": "https://zid-s7xi6.ondigitalocean.app/auth/zid/callback",
-            "endpoints": {
-                "zid_install": "/auth/zid",
-                "zid_callback": "/auth/zid/callback",
-                "authorize": "/auth/authorize",
-                "callback": "/auth/callback", 
-                "test": "/auth/test-authorize/{merchant_id}",
-                "status": "/auth/status/{merchant_id}",
-                "refresh": "/auth/refresh/{merchant_id}",
-                "revoke": "/auth/revoke/{merchant_id}"
-            }
-        }
+        client = ZidAPIClient(merchant_id)
+        result = await client.validate_tokens()
+
+        return TokenStatusResponse(
+            merchant_id=result.get("merchant_id", merchant_id),
+            is_active=result.get("valid", False),
+            expires_at=result.get("expires_at"),
+            last_updated=result.get("last_updated")
+        )
+
     except Exception as e:
-        logger.error(f"Auth health check failed: {str(e)}")
-        raise HTTPException(status_code=503, detail="Authentication service unavailable")
+        logger.error(f"Token introspection failed for merchant {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Token introspection failed")

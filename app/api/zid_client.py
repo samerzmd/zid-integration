@@ -242,21 +242,6 @@ class ZidAPIClient:
         """Make DELETE request to Zid API"""
         return await self._make_request("DELETE", endpoint)
     
-    async def health_check(self) -> bool:
-        """
-        Check API client health by making a test request
-        
-        Returns:
-            True if client can authenticate and make requests
-        """
-        try:
-            # Try to get store information as a health check
-            response = await self.get("/store")
-            return response is not None
-        except Exception as e:
-            logger.error(f"API client health check failed for merchant {self.merchant_id}: {str(e)}")
-            return False
-    
     async def validate_tokens(self) -> Dict[str, Any]:
         """
         Validate stored tokens and return status
