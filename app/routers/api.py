@@ -142,128 +142,63 @@ async def cleanup_old_data():
 @router.get("/products/{merchant_id}")
 async def get_products(
     merchant_id: str,
-    # Pagination
     page: int = Query(default=1, ge=1, description="Page number"),
-    limit: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    # Filtering
-    category_id: Optional[int] = Query(default=None, description="Filter by category ID"),
-    min_price: Optional[float] = Query(default=None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(default=None, ge=0, description="Maximum price filter"),
-    is_active: Optional[bool] = Query(default=None, description="Filter by active status"),
-    is_featured: Optional[bool] = Query(default=None, description="Filter by featured status"),
-    has_variants: Optional[bool] = Query(default=None, description="Filter by products with variants"),
-    stock_status: Optional[str] = Query(default=None, description="Stock status: in_stock, low_stock, out_of_stock"),
-    # Search
-    search: Optional[str] = Query(default=None, description="Search in product name and description"),
-    sku: Optional[str] = Query(default=None, description="Search by SKU"),
-    barcode: Optional[str] = Query(default=None, description="Search by barcode"),
-    tags: Optional[str] = Query(default=None, description="Filter by tags (comma-separated)"),
-    # Sorting
-    sort_by: str = Query(default="created_at", description="Sort by: name, price, created_at, updated_at, quantity"),
-    sort_order: str = Query(default="desc", regex="^(asc|desc)$", description="Sort order: asc or desc")
+    limit: int = Query(default=10, ge=1, le=50, description="Items per page (max 50)"),
+    search: Optional[str] = Query(default=None, description="Search by attribute values")
 ):
     """
-    Get products list with comprehensive filtering and search capabilities
-    
+    Retrieve a list of products from Zid API for a given merchant.
+
     Args:
         merchant_id: Merchant identifier
-        page: Page number for pagination
-        limit: Items per page (max 100)
-        category_id: Filter by specific category
-        min_price/max_price: Price range filtering
-        is_active: Filter by product status
-        is_featured: Filter by featured products
-        has_variants: Filter products with/without variants
-        stock_status: Filter by stock availability
-        search: Text search in name/description
-        sku: Search by SKU
-        barcode: Search by barcode
-        tags: Filter by product tags
-        sort_by: Field to sort by
-        sort_order: Sorting direction
-        
+        page: Page number
+        limit: Number of items per page (Zid max: 50)
+        search: Comma-separated attribute values (e.g., nike,black,XL)
+
     Returns:
-        Enhanced products list with metadata from Zid API
+        A paginated product list with metadata
     """
     try:
         client = ZidAPIClient(merchant_id)
-        
-        # Build query parameters for Zid API
+
         params = {
             "page": page,
-            "page_size": limit,  # Zid uses page_size instead of per_page
+            "page_size": limit,
         }
-        
-        # Add filtering parameters (simplified for Zid API compatibility)
+
         if search:
-            # Zid supports attribute_values for filtering
             params["attribute_values"] = search
-        if min_price is not None:
-            params["min_price"] = min_price
-        if max_price is not None:
-            params["max_price"] = max_price
-        if is_active is not None:
-            params["is_active"] = is_active
-        if is_featured is not None:
-            params["is_featured"] = is_featured
-        if has_variants is not None:
-            params["has_variants"] = has_variants
-        if stock_status:
-            params["stock_status"] = stock_status
-        if search:
-            params["search"] = search
-        if sku:
-            params["sku"] = sku
-        if barcode:
-            params["barcode"] = barcode
-        if tags:
-            params["tags"] = tags
-        
-        logger.info(f"Fetching products for merchant {merchant_id} with filters: {params}")
-        
-        # Make request to Zid API - Updated to correct endpoint per Zid docs
+
+        logger.info(f"Requesting products for merchant {merchant_id} with params: {params}")
         products_data = await client.get("/v1/products/", params=params)
-        
-        if products_data:
-            # Extract pagination info from response (Zid API structure)
-            total_count = products_data.get("count", 0)
-            products_list = products_data.get("results", [])
-            
-            # Build enhanced response
-            response = {
-                "success": True,
-                "merchant_id": merchant_id,
-                "products": products_list,
-                "pagination": {
-                    "page": page,
-                    "limit": limit,
-                    "total_count": total_count,
-                    "total_pages": (total_count + limit - 1) // limit if total_count > 0 else 0,
-                    "has_next": page * limit < total_count,
-                    "has_prev": page > 1
-                },
-                "filters_applied": {
-                    "search": search,  # Applied via attribute_values
-                    "page": page,
-                    "page_size": limit
-                },
-                "sorting": {
-                    "note": "Zid API handles sorting internally"
-                },
-                "metadata": {
-                    "results_count": len(products_list),
-                    "total_products": total_count
-                }
+
+        if not isinstance(products_data, dict):
+            logger.error(f"Unexpected response type from Zid: {type(products_data)}")
+            raise HTTPException(status_code=502, detail="Invalid response from Zid API")
+
+        total_count = products_data.get("count", 0)
+        products = products_data.get("results", [])
+
+        return {
+            "success": True,
+            "merchant_id": merchant_id,
+            "products": products,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_count": total_count,
+                "total_pages": (total_count + limit - 1) // limit,
+                "has_next": page * limit < total_count,
+                "has_prev": page > 1
+            },
+            "metadata": {
+                "results_count": len(products),
+                "attribute_values_used": search
             }
-            
-            logger.info(f"Products retrieved successfully for merchant {merchant_id}: {len(products_list)} items")
-            return response
-            
-        else:
-            raise HTTPException(status_code=400, detail="Failed to retrieve products")
-            
+        }
+
     except Exception as e:
-        logger.error(f"Products request failed for merchant {merchant_id}: {str(e)}")
+        logger.exception(f"Products request failed for merchant {merchant_id}")
         raise HTTPException(status_code=500, detail=f"Products request failed: {str(e)}")
 
 @router.get("/orders/{merchant_id}")
