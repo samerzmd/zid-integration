@@ -10,6 +10,8 @@ from sqlalchemy import select, update
 from datetime import datetime, timedelta
 import logging
 
+import urllib
+
 from ..models.database import ZidCredential, OAuthState, TokenAuditLog
 from ..database import get_db
 from .token_manager import TokenManager
@@ -65,11 +67,11 @@ class OAuthService:
                 "response_type": "code",
                 "client_id": self.client_id,
                 "redirect_uri": self.redirect_uri,
-                "scope": " ".join(scopes),
-                "state": state
+                # "scope": " ".join(scopes),
+                # "state": state
             }
             
-            auth_url = f"{self.oauth_base_url}/oauth/authorize?{urlencode(params)}"
+            auth_url = f"{self.oauth_base_url}/oauth/authorize?{urllib.parse.urlencode(params)}"
             
             # Log authorization initiation
             await self._log_token_action(

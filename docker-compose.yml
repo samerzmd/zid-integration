@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://zid_user:zid_password@postgres:5432/zid_db
+      - DATABASE_URL=postgresql+asyncpg://zid_user:zid_password@localhost:5432/zid_db
       - REDIS_URL=redis://redis:6379/0
       - ZID_CLIENT_ID=${ZID_CLIENT_ID}
       - ZID_CLIENT_SECRET=${ZID_CLIENT_SECRET}
@@ -32,12 +32,12 @@ services:
       - POSTGRES_USER=zid_user
       - POSTGRES_PASSWORD=zid_password
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U zid_user -d zid_integration"]
+      test: ["CMD-SHELL", "pg_isready -U zid_user -d zid_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,7 +66,7 @@ services:
   migration:
     build: .
     environment:
-      - DATABASE_URL=postgresql+asyncpg://zid_user:zid_password@postgres:5432/zid_db
+      - DATABASE_URL=postgresql+asyncpg://zid_user:zid_password@localhost:5432/zid_db
     depends_on:
       postgres:
         condition: service_healthy

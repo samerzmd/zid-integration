@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     
     # Zid OAuth Configuration
-    zid_client_id: Optional[str] = None
-    zid_client_secret: Optional[str] = None
-    zid_redirect_uri: str = "https://zid-s7xi6.ondigitalocean.app/auth/zid/callback"
+    zid_client_id: Optional[str] = 4968
+    zid_client_secret: Optional[str] = "f9JNgI5vlfTJMa6gaBUpD8gjibyeT4x6khZmpt9M"
+    zid_redirect_uri: str = "http://localhost:8000/auth/zid/callback"
     
     # Security
     encryption_key: str  # Required - 32 byte base64 encoded key

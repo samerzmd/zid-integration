@@ -266,3 +266,37 @@ async def introspect_merchant_token(merchant_id: str):
     except Exception as e:
         logger.error(f"Token introspection failed for merchant {merchant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Token introspection failed")
+
+@router.get("/merchantProfile/{merchant_id}")
+async def get_merchant_profile(merchant_id: str):
+    """
+    Get merchant profile information from Zid API
+    
+    Args:
+        merchant_id: Merchant identifier
+        
+    Returns:
+        Merchant profile data from Zid API
+    """
+    from ..api.zid_client import ZidAPIClient
+    
+    try:
+        client = ZidAPIClient(merchant_id)
+        
+        # Call Zid API endpoint for manager account profile
+        profile_data = await client.get("/managers/account/profile")
+        
+        if profile_data:
+            logger.info(f"Retrieved merchant profile for {merchant_id}")
+            return {
+                "success": True,
+                "merchant_id": merchant_id,
+                "profile": profile_data
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Merchant profile not found")
+            
+    except Exception as e:
+        logger.error(f"Failed to get merchant profile for {merchant_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve merchant profile")
+   
