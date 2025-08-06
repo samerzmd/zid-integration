@@ -87,7 +87,7 @@ async def zid_install_redirect(request: Request):
         # Generate authorization URL - Zid will identify the merchant during OAuth
         auth_url = await oauth_service.generate_authorization_url(
             merchant_id=temp_merchant_id,
-            scopes=["read_orders", "read_products", "read_customers", "webhooks"]
+            scopes=["read_orders", "read_products", "read_customers"]
         )
         
         logger.info(f"Redirecting to Zid OAuth authorization for installation {temp_merchant_id}")

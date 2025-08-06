@@ -9,6 +9,7 @@ class ZidCredential(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     merchant_id = Column(String, nullable=False, unique=True, index=True)
+    store_id = Column(Integer, nullable=True, index=True)  # or nullable=False if you’ve backfilled
     
     # Encrypted tokens (stored as base64 encrypted strings)
     access_token = Column(Text, nullable=False)        # For X-MANAGER-TOKEN header
@@ -27,6 +28,7 @@ class ZidCredential(Base):
     __table_args__ = (
         Index('idx_merchant_active', 'merchant_id', 'is_active'),
         Index('idx_expires_at', 'expires_at'),
+        Index('idx_zid_credentials_store_id', 'store_id'),
     )
 
 class OAuthState(Base):

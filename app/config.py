@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Zid OAuth Configuration
     zid_client_id: Optional[str] = 4968
     zid_client_secret: Optional[str] = "f9JNgI5vlfTJMa6gaBUpD8gjibyeT4x6khZmpt9M"
-    zid_redirect_uri: str = "http://localhost:8000/auth/zid/callback"
+    zid_redirect_uri: str = "https://thepc.samerzmd.com/auth/zid/callback"
     
     # Security
     encryption_key: str  # Required - 32 byte base64 encoded key

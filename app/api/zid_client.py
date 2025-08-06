@@ -75,7 +75,7 @@ class ZidAPIClient:
             return {
                 "access_token": access_token,
                 "authorization_token": authorization_token,
-                "refresh_token": refresh_token
+                "refresh_token": refresh_token,
             }
         except Exception as e:
             logger.error(f"Token decryption failed for merchant {self.merchant_id}: {str(e)}")
@@ -133,7 +133,7 @@ class ZidAPIClient:
             "Authorization": f"Bearer {tokens['authorization_token']}",  # Required by Zid API
             
             # Required Zid API headers
-            "Store-Id": self.merchant_id,  # Use merchant_id as Store-Id
+            "Store-Id": str(credential.store_id),  # Use store_id from credentials
             "Role": "Manager",  # Required role for API access
             "Accept-Language": "all-languages",  # Get both Arabic and English content
             

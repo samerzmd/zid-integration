@@ -67,8 +67,8 @@ class OAuthService:
                 "response_type": "code",
                 "client_id": self.client_id,
                 "redirect_uri": self.redirect_uri,
-                # "scope": " ".join(scopes),
-                # "state": state
+                "scope": " ".join(scopes),
+                "state": state
             }
             
             auth_url = f"{self.oauth_base_url}/oauth/authorize?{urllib.parse.urlencode(params)}"
@@ -134,6 +134,10 @@ class OAuthService:
             )
             
             logger.info(f"OAuth callback completed successfully for merchant {merchant_id}")
+
+            await self._fetch_and_store_store_id(credential_id, 
+                                           token_response["Authorization"], 
+                                           token_response["access_token"])
             
             return {
                 "success": True,
@@ -510,3 +514,28 @@ class OAuthService:
         except Exception as e:
             logger.error(f"Failed to log token action: {str(e)}")
             # Don't raise here - audit logging shouldn't break the flow
+
+    async def _fetch_and_store_store_id(self, credential_id: str, auth_header: str, manager_token: str):
+        headers = {
+            "X-Manager-Token": manager_token,
+            "Authorization": "Bearer " + auth_header
+        }
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{self.oauth_base_url}/v1/managers/account/profile", headers=headers)
+        if r.status_code != 200:
+            logger.error(f"Failed to fetch store ID for credential {credential_id}: {r.text}")
+            return
+        else:
+            logger.info(f"Fetched store ID for credential {credential_id} successfully")
+            # parse the response to extract store_id
+            # Assuming the response contains a 'store_id' or 'shop_id' field
+            profile_data = r.json()
+            store_id = profile_data.get("user").get("store").get("id")
+            if not store_id:
+                logger.error(f"No store ID found in profile response for credential {credential_id}")
+                return
+            # Store the store_id in the ZidCredential model
+            async with get_db() as db:
+                stmt = update(ZidCredential).where(ZidCredential.id == credential_id).values(store_id=store_id)
+                await db.execute(stmt)
+                await db.commit()
